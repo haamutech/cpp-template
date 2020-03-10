@@ -1,0 +1,13 @@
+version: "3.4"
+services:
+  dev:
+    entrypoint: [ "/bin/bash", "-c"]
+    command: [ "mkdir -p build && rm -rf build/* && cmake -Bbuild -H. && cmake --build build/ -j`nproc` && echo 'Watching source files for changes.' && inotifywait --format '%e' -e close_write -qmr src test CMakeLists.txt | while read events; do time cmake --build build/ -j`nproc` && ./build/testrunner && test -f default.profraw && llvm-profdata-9 merge -sparse default.profraw -o default.profdata && llvm-cov-9 show --show-regions -Xdemangler c++filt -Xdemangler -n --instr-profile=default.profdata --region-coverage-lt=100 ./build/testrunner ./src/*; done" ]
+    build:
+      context: .
+      target: build
+    volumes:
+      - ./build:/app/build
+      - ./CMakeLists.txt:/app/CMakeLists.txt
+      - ./src:/app/src
+      - ./test:/app/test
